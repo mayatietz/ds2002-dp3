@@ -7,6 +7,9 @@ import json
 url = "https://sqs.us-east-1.amazonaws.com/440848399208/met9krd"
 sqs = boto3.client('sqs')
 
+f = open("myfile.txt", "w")
+messages = []
+
 def delete_message(handle):
     try:
         # Delete message from SQS queue
@@ -27,31 +30,40 @@ def get_message():
             AttributeNames=[
                 'All'
             ],
-            MaxNumberOfMessages=1,
+            MaxNumberOfMessages=10,
             MessageAttributeNames=[
                 'All'
             ]
         )
         # Check if there is a message in the queue or not
+        print('Response here: ', response)
         if "Messages" in response:
-            # extract the two message attributes you want to use as variables
-            # extract the handle for deletion later
-            order = response['Messages'][0]['MessageAttributes']['order']['StringValue']
-            word = response['Messages'][0]['MessageAttributes']['word']['StringValue']
-            handle = response['Messages'][0]['ReceiptHandle']
-
-            # Print the message attributes - this is what you want to work with to reassemble the message
-            print(f"Order: {order}")
-            print(f"Word: {word}")
-
-        # If there is no message in the queue, print a message and exit    
+            print('response here: ', response, '\n')
+            count = 0
+            for i in response['Messages']:
+                if count <= len(response['Messages']):
+                    order = response['Messages'][count]['MessageAttributes']['order']['StringValue']
+                    word = response['Messages'][count]['MessageAttributes']['word']['StringValue']
+                    f = open("myfile.txt", "a")
+                    print(f"Order: {order}")
+                    print(f"Word: {word}", '\n')
+                    count += 1
+                    pair = {"Order": {order},"Word": {word}}
+                    print(pair, )
+                    messages.append(pair)
+                    print(messages)
+                    return messages
+                    f.close()  
         else:
             print("No message in the queue")
             exit(1)
-            
-    # Handle any errors that may occur connecting to SQS
+# Handle any errors that may occur connecting to SQS
     except ClientError as e:
-        print(e.response['Error']['Message'])
+        print(e.response['Error']['Message'])         
+def assemble_phrase(pair):
+    phrase = ' '.join(pair[order][0] for order in sorted(pair))
+    with open('phrase.txt', 'w') as file:
+        file.write(phrase)
 
 # Trigger the function
 if __name__ == "__main__":
